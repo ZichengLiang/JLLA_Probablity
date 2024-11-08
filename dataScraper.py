@@ -79,18 +79,38 @@ class team:
     def __str__(self):
         return f"{self.name} : {self.url}"
 
+class player:
+    def __init__(self, name, url):
+        self.name = name
+        self.url = url
+    
+    def __str__(self):
+        return f"{self.name} : {self.url}"
+    
+
 def saveTeamHTML():
     for team in teams:
         print(team.url)
         print(team.name)
         save_html(team.url, str(team.name)+".html", "./data/teamPages")
         time.sleep(60)
+
+def extractPlayersFromTeamPage():
+    for team in teams:
+        teamPage = open("data/teamPages/"+team.name+".html", "r")
+        S = BeautifulSoup(teamPage.read(), 'html.parser')
+        rows = S.select("#stats_standard_9 > tbody tr")
+        for row in rows:
+            print(row)
+            
+            
         
 
 def main():
     save_html(mainPageURL, 'homepage.html')
     extractURLandNames()
     # saveTeamHTML()
+    extractPlayersFromTeamPage()
     
 
 
