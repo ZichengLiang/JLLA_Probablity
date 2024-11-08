@@ -91,12 +91,36 @@ def extractPlayersFromTeamPage():
                 position = position_tag.text.strip()
                 
                 players.append(Player(player_name, player_url, position, team.name))
-    
+
+def search_players(name=None, position=None, team=None):
+    """
+    Search players by name, position, or team.
+    Parameters:
+        name (str): Part or full name of the player.
+        position (str): Position code (e.g., 'GK', 'DF', 'MF', 'FW').
+        team (str): Part or full name of the team.
+    """
+    results = []
+    for player in players:
+        if (name and name.lower() not in player.name.lower()) or \
+           (position and position.lower() != player.position.lower()) or \
+           (team and team.lower() not in player.team.lower()):
+            continue
+        results.append(player)
+
+    if results:
+        print(f"Found {len(results)} players:")
+        for result in results:
+            print(result)
+    else:
+        print("No players found with the specified criteria.")
+
 
 def main():
     save_html(mainPageURL, 'homepage.html')
     extractURLandNames()
     # saveTeamHTML()
     extractPlayersFromTeamPage()
+    # search_players("Haaland", "FW", "Manchester City")
 
 main()
