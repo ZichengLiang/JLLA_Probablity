@@ -1,77 +1,52 @@
-#Place imports below
+import os
 import requests
 from bs4 import BeautifulSoup
 import time
 
-# This is the link to the PREMIER LEAGUE page of the FBREF website,
-# which we will use to scrape data
 mainPageURL = "https://fbref.com/en/comps/9/Premier-League-Stats"
 numberTeams = 20
 teams = []
-"""
-parameters{ 
-    url : 'the url of the site you wish to save'
-    fileName : 'file name to be saved to'
-    directory : which folder you wish to save the html. defaultVal = data/
-}
-"""
-def save_html(url, fileName, directory = './data'):
+players = []
+
+def save_html(url, fileName, directory='./data'):
+    os.makedirs(directory, exist_ok=True)
     try:
         pageData = requests.get(url)
-        try:
-            with open(directory+"/"+fileName, 'wb') as f:
-                f.write(pageData.content)
-                f.close()
-        except:
-            print("read error")
-    except:
-        print("Error: Code 1 - Page Request not valid")
-        return;
+        pageData.raise_for_status()
+        with open(f"{directory}/{fileName}", 'wb') as f:
+            f.write(pageData.content)
+    except requests.RequestException as e:
+        print(f"Error saving HTML from {url}: {e}")
 
-
-"""
-parameters{
-    pathToFile : location where .html file is stored. 
-    RETURNS : read data of file / NULL
-}
-"""
 def read_html(pathToFile):
     try:
         with open(pathToFile, 'rb') as f:
             return f.read()
-    except:
-        return "NULL"
+    except FileNotFoundError:
+        print(f"File {pathToFile} not found.")
+        return None
 
-
-"""
-Extracts the urls and team names for teach team and places them into the teamClass with attributes called teams, teamURLS
-"""
 def extractURLandNames():
-    homePage = open("data/homepage.html", "r")
-    S = BeautifulSoup(homePage.read(), 'html.parser')
-    rows = S.select('#results2024-202591_overall > tbody tr')
-
-    i = 0
+    homepage_content = read_html("data/homepage.html")
+    if not homepage_content:
+        print("Failed to read homepage HTML.")
+        return
+    
+    soup = BeautifulSoup(homepage_content, 'html.parser')
+    rows = soup.select('#results2024-202591_overall > tbody > tr')
+    
     for row in rows:
-        teamHREF = row.select("#results2024-202591_overall > tbody > tr:nth-child("+str(i+1)+") > td:nth-child(2) > a")
-        beginURL = str(teamHREF[0]).index("/")
-        beginURL += 1
-        endURL = str(teamHREF[0]).index(">")
-        teamURL = str(teamHREF)[beginURL:endURL]
-        teamURL = "https://fbref.com"+teamURL
+        team_link = row.select_one("td[data-stat='team'] a")
+        if team_link:
+            team_name = team_link.text.strip()
+            team_url = "https://fbref.com" + team_link['href']
+            
+            if team_name == "Nott'ham Forest":
+                team_name = "Nottingham Forest"
+            
+            teams.append(Team(team_name, team_url))
 
-        beginName = endURL + 2
-        endName = str(teamHREF[0]).index("</") +1
-        teamName = str(teamHREF)[beginName:endName]
-
-        if teamName == ("Nott'ham Forest"):
-            teamName = "Nottingham Forest"
-        
-        i += 1
-        teams.append(team(teamName, teamURL))
-    
-# Team Class:
-class team:
+class Team:
     def __init__(self, name, url):
         self.name = name
         self.url = url
@@ -79,39 +54,49 @@ class team:
     def __str__(self):
         return f"{self.name} : {self.url}"
 
-class player:
-    def __init__(self, name, url):
+class Player:
+    def __init__(self, name, url, position, team):
         self.name = name
         self.url = url
+        self.position = position
+        self.team = team
+        self.Goalkeeper = (position == "GK")
     
     def __str__(self):
-        return f"{self.name} : {self.url}"
-    
+        return f"{self.name} : {self.url} : {self.position} : {self.team}"
 
 def saveTeamHTML():
     for team in teams:
-        print(team.url)
-        print(team.name)
-        save_html(team.url, str(team.name)+".html", "./data/teamPages")
-        time.sleep(60)
+        print(f"Saving data for {team.name}")
+        save_html(team.url, f"{team.name}.html", "./data/teamPages")
+        time.sleep(1)
 
 def extractPlayersFromTeamPage():
     for team in teams:
-        teamPage = open("data/teamPages/"+team.name+".html", "r")
-        S = BeautifulSoup(teamPage.read(), 'html.parser')
-        rows = S.select("#stats_standard_9 > tbody tr")
-        for row in rows:
-            print(row)
-            
-            
+        team_html = read_html(f"data/teamPages/{team.name}.html")
+        if not team_html:
+            print(f"Skipping {team.name} due to missing file.")
+            continue
         
+        soup = BeautifulSoup(team_html, 'html.parser')
+        rows = soup.select("#stats_standard_9 > tbody > tr")
+        
+        for row in rows:
+            name_tag = row.select_one("th[data-stat='player'] a")
+            position_tag = row.select_one("td[data-stat='position']")
+            
+            if name_tag and position_tag:
+                player_name = name_tag.text.strip()
+                player_url = "https://fbref.com" + name_tag['href']
+                position = position_tag.text.strip()
+                
+                players.append(Player(player_name, player_url, position, team.name))
+    
 
 def main():
     save_html(mainPageURL, 'homepage.html')
     extractURLandNames()
     # saveTeamHTML()
     extractPlayersFromTeamPage()
-    
-
 
 main()
