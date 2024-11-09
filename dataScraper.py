@@ -60,10 +60,34 @@ class Player:
         self.url = url
         self.position = position
         self.team = team
-        self.Goalkeeper = (position == "GK")
+        self.isGoalkeeper = (position == "GK")
+
+        # GK STATS:
+        self.savePercentage = 0
+
+        # Outfielder Stats:
+        self.tacklesPG = 0
+        self.interceptionsPG = 0
+        self.shotsPG = 0
+        self.passesPG = 0
+        self.progPassesRecievedPG = 0
+        self.progCarriesPG = 0
     
     def __str__(self):
-        return f"{self.name} : {self.url} : {self.position} : {self.team}"
+        return f"{self.name} : {self.url} : {self.position} : {self.team} : {self.savePercentage} : {self.tacklesPG} : {self.interceptionsPG} : {self.shotsPG} : {self.passesPG} : {self.progPassesRecievedPG} : {self.progCarriesPG}"
+    
+
+    def setGKStats(self, savePercentage):
+        self.savePercentage = savePercentage
+    
+    def setOutfielderStats(self, tacklesPGParsed, passesPGParsed, shotsPGParsed, interceptionsPGParsed, 
+                           progPassRecievedPGParsed, progCarriesPGParsed):
+        self.tacklesPG = tacklesPGParsed
+        self.passesPG = passesPGParsed
+        self.shotsPG = shotsPGParsed
+        self.interceptionsPG = interceptionsPGParsed
+        self.progPassesRecievedPG = progPassRecievedPGParsed
+        self.progCarriesPG = progCarriesPGParsed
 
 def saveTeamHTML():
     for team in teams:
@@ -112,15 +136,71 @@ def search_players(name=None, position=None, team=None):
         print(f"Found {len(results)} players:")
         for result in results:
             print(result)
+        return results
     else:
         print("No players found with the specified criteria.")
 
+def savePlayersStatsHTML():
+    for player in players:
+        if player.isGoalkeeper:
+            save_html(player.url, f"{player.name}.html", "./data/players/keeperPages")
+        else:
+            save_html(player.url, f"{player.name}.html", "./data/players/outfielderPages")
+
+        time.sleep(15)
+
+def parseHelper(parsable):
+    try:
+        parsable = parsable[0]
+        parsable = str(parsable)
+        beginparsable = parsable.index(">") + 1
+        endparsable = parsable.index("</")
+        return float(parsable[beginparsable:endparsable])
+    except:
+        pass
+
+def addStatsToPlayers():
+    for player in players:
+        if player.isGoalkeeper:
+            player_html = read_html(f"data/players/keeperPages/{player.name}.html")
+            soup = BeautifulSoup(player_html, 'html.parser')
+            savePercentageUnparsed = soup.select("#scout_summary_GK > tbody > tr:nth-child(3) > td.right")
+            if savePercentageUnparsed != []:
+                savePercentageUnparsed = savePercentageUnparsed[0]
+                savePercentageUnparsed = str(savePercentageUnparsed)
+                beginSavePercent = savePercentageUnparsed.index(">") + 1
+                endSavePercent = savePercentageUnparsed.index("</") - 1
+                savePercentageParsed = float(savePercentageUnparsed[beginSavePercent:endSavePercent])
+                player.setGKStats(savePercentageParsed)
+            else:
+                players.remove(player)       
+        else:
+            player_html = read_html(f"data/players/outfielderPages/{player.name}.html")
+            soup = BeautifulSoup(player_html, 'html.parser')
+
+            tacklesPGUnparsed = soup.select("#scout_summary_AM > tbody > tr:nth-child(17) > td.right")
+            shotsPGUnparsed = soup.select("#scout_summary_AM > tbody > tr:nth-child(3) > td.right")
+            interceptionsPGUnparsed = soup.select("#scout_summary_AM > tbody > tr:nth-child(18) > td.right")
+            passesPGUnparsed = soup.select("#scout_summary_AM > tbody > tr:nth-child(9) > td.right")
+            progPassRecievedPGUnparsed = soup.select("#scout_summary_AM > tbody > tr:nth-child(15) > td.right")
+            progCarriesPGUnparsed = soup.select("#scout_summary_AM > tbody > tr:nth-child(12) > td.right")
+
+            passesPGParsed = parseHelper(passesPGUnparsed)
+            tacklesPGParsed = parseHelper(tacklesPGUnparsed)
+            shotsPGParsed = parseHelper(shotsPGUnparsed)
+            interceptionsPGParsed = parseHelper(interceptionsPGUnparsed)
+            progPassRecievedPGParsed = parseHelper(progPassRecievedPGUnparsed)
+            progCarriesPGParsed = parseHelper(progCarriesPGUnparsed)
+            player.setOutfielderStats(tacklesPGParsed, passesPGParsed, shotsPGParsed, interceptionsPGParsed, progPassRecievedPGParsed, progCarriesPGParsed)
 
 def main():
     save_html(mainPageURL, 'homepage.html')
     extractURLandNames()
     # saveTeamHTML()
     extractPlayersFromTeamPage()
-    # search_players("Haaland", "FW", "Manchester City")
+    #savePlayersStatsHTML()
+    addStatsToPlayers()
+    for player in players:
+        print(player)
 
 main()
