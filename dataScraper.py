@@ -2,11 +2,29 @@ import os
 import requests
 from bs4 import BeautifulSoup
 import time
+import sys
+import json
 
 mainPageURL = "https://fbref.com/en/comps/9/Premier-League-Stats"
 numberTeams = 20
 teams = []
 players = []
+
+#This is just a fun function: Delete if performance heavy and uncomment the last line in addstatstoplayers
+def display_loading_bar(count, total, bar_length=40):
+    """
+    Displays a loading bar in the terminal.
+    Parameters:
+        count (int): Current progress count.
+        total (int): Total count for completion.
+        bar_length (int): Length of the loading bar in characters.
+    """
+    progress = count / total
+    block = int(round(bar_length * progress))
+    bar = "#" * block + "-" * (bar_length - block)
+    sys.stdout.write(f"\r[{bar}] {progress * 100:.2f}%\n")
+    sys.stdout.flush()
+
 
 def save_html(url, fileName, directory='./data'):
     os.makedirs(directory, exist_ok=True)
@@ -62,6 +80,9 @@ class Player:
         self.team = team
         self.isGoalkeeper = (position == "GK")
 
+        #Common stats:
+        self.matchesPlayed = 0
+
         # GK STATS:
         self.savePercentage = 0
 
@@ -74,20 +95,40 @@ class Player:
         self.progCarriesPG = 0
     
     def __str__(self):
-        return f"{self.name} : {self.url} : {self.position} : {self.team} : {self.savePercentage} : {self.tacklesPG} : {self.interceptionsPG} : {self.shotsPG} : {self.passesPG} : {self.progPassesRecievedPG} : {self.progCarriesPG}"
+        return f"[Name: {self.name}\n URL: {self.url}\n POS: {self.position}\n Team: {self.team}\n SavePercentage(Keepers Only): {self.savePercentage}\n TacklesPG: {self.tacklesPG}\n InterceptionsPG: {self.interceptionsPG}\n ShotsPG: {self.shotsPG}\n PassesPG: {self.passesPG}\n ProgPassesRec: {self.progPassesRecievedPG}\n ProgCarries: {self.progCarriesPG}]"
     
 
-    def setGKStats(self, savePercentage):
+    def setGKStats(self, savePercentage, matchesPlayed):
+        self.matchesPlayed = matchesPlayed
         self.savePercentage = savePercentage
     
-    def setOutfielderStats(self, tacklesPGParsed, passesPGParsed, shotsPGParsed, interceptionsPGParsed, 
-                           progPassRecievedPGParsed, progCarriesPGParsed):
-        self.tacklesPG = tacklesPGParsed
-        self.passesPG = passesPGParsed
-        self.shotsPG = shotsPGParsed
-        self.interceptionsPG = interceptionsPGParsed
-        self.progPassesRecievedPG = progPassRecievedPGParsed
-        self.progCarriesPG = progCarriesPGParsed
+    def setOutfielderStats(self, tackles, passes, shots, interceptions, 
+                           progPassRecieved, progCarries, matchesPlayed):
+        #The values come in as player career totals. We divide by player games played to get per game stats.
+        self.tacklesPG = tackles/matchesPlayed
+        self.passesPG = passes/matchesPlayed
+        self.shotsPG = shots/matchesPlayed
+        self.interceptionsPG = interceptions/matchesPlayed
+        self.progPassesRecievedPG = progPassRecieved/matchesPlayed
+        self.progCarriesPG = progCarries/matchesPlayed
+        self.matchesPlayed = matchesPlayed
+    
+    def to_dict(self):
+        return {
+            "name": self.name,
+            "url": self.url,
+            "position": self.position,
+            "team": self.team,
+            "isGoalkeeper": self.isGoalkeeper,
+            "matchesPlayed": self.matchesPlayed,
+            "savePercentage": self.savePercentage,
+            "tacklesPG": self.tacklesPG,
+            "interceptionsPG": self.interceptionsPG,
+            "shotsPG": self.shotsPG,
+            "passesPG": self.passesPG,
+            "progPassesRecievedPG": self.progPassesRecievedPG,
+            "progCarriesPG": self.progCarriesPG
+        }
 
 def saveTeamHTML():
     for team in teams:
@@ -140,7 +181,7 @@ def search_players(name=None, position=None, team=None):
     else:
         print("No players found with the specified criteria.")
 
-def savePlayersStatsHTML():
+def savePlayersStatsHTML(players):
     for player in players:
         if player.isGoalkeeper:
             save_html(player.url, f"{player.name}.html", "./data/players/keeperPages")
@@ -148,12 +189,98 @@ def savePlayersStatsHTML():
             save_html(player.url, f"{player.name}.html", "./data/players/outfielderPages")
 
         time.sleep(15)
+
+def addStatsToPlayer():
+    count = 0
+    for player in players:
+        try:
+            if player.isGoalkeeper:
+                player_html = read_html(f"./data/players/keeperPages/{player.name}.html")
+                if not player_html:
+                    print(f"Skipping {player.name}, as HTML read was invalid.")
+                    continue
+                soup = BeautifulSoup(player_html, "html.parser")
+
+                if soup is None:
+                    print(f"{player.name} does not have necessary values.")
+                    continue
+
+                savesPerGame = 0
+                keeperMatchesPlayed = 0
+                try:
+                    keeperMatchesPlayed = int(soup.select("#stats_keeper_dom_lg > tfoot > tr:nth-child(1) > td:nth-child(6)")[0].get_text(strip=True)or 0)
+                    savesPerGame = float(soup.select("#stats_keeper_dom_lg > tfoot > tr:nth-child(1) > td:nth-child(14)")[0].get_text(strip=True)or 0)
+
+                    player.setGKStats(savesPerGame, keeperMatchesPlayed)
+                    print(f"Updated stats for {player.name}\n")
+                except Exception as e:
+                    print(f"Unexpected error processing {player.name}: {e}")
+
+            else:
+                player_html = read_html(f"./data/players/outfielderPages/{player.name}.html")
+                if not player_html:
+                    print(f"Skipping {player.name}, as HTML read was invalid.")
+                    continue
+                
+                soup = BeautifulSoup(player_html, "html.parser")
+                
+                if soup is None:
+                    print(f"{player.name} does not have necessary values.")
+                    continue
+                
+                # Initialize variables with defaults
+                matchesPlayed = 0
+                tackles = 0
+                interceptions = 0
+                shots = 0
+                passes = 0#stats_standard_dom_lg > tfoot > tr:nth-child(1) > 
+                progPassesRecieved = 0
+                progCarries = 0
+                
+                # Parse stats using row.select() and assign values
+                try:
+                    matchesPlayed = int(soup.select("#stats_standard_dom_lg > tfoot > tr:nth-child(1) > td:nth-child(6)")[0].get_text(strip=True)or 0)
+                    tackles = float(soup.select("#stats_defense_dom_lg > tfoot > tr:nth-child(1) > td:nth-child(7)")[0].get_text(strip=True) or 0)
+                    interceptions = float(soup.select("#stats_defense_dom_lg > tfoot > tr:nth-child(1) > td:nth-child(19)")[0].get_text(strip=True) or 0)
+                    shots = float(soup.select("#stats_shooting_dom_lg > tfoot > tr:nth-child(1) > td:nth-child(7)")[0].get_text(strip=True) or 0)
+                    passes = float(soup.select("#stats_passing_dom_lg > tfoot > tr:nth-child(1) > td:nth-child(8)")[0].get_text(strip=True) or 0)
+                    progPassesRecieved = float(soup.select("#stats_possession_dom_lg > tfoot > tr:nth-child(1) > td:nth-child(28)")[0].get_text(strip=True) or 0)
+                    progCarries = float(soup.select("#stats_possession_dom_lg > tfoot > tr:nth-child(1) > td:nth-child(19)")[0].get_text(strip=True) or 0)
+                    
+                    player.setOutfielderStats(tackles, passes, shots, interceptions, progPassesRecieved, progCarries, matchesPlayed)
+                    print(f"Updated stats for {player.name}\n")
+                except Exception as e:
+                    print(f"Error extracting stats for {player.name}: {e}")
+                    continue
         
+        except Exception as e:
+            print(f"Unexpected error processing {player.name}: {e}")
+        
+        count += 1
+        display_loading_bar(count, len(players))
+        #print(f"Percentage Complete: {(count/len(players))*100:.2f}%")
+
+
+
+def players_to_json(players):
+    players_dict_list = [player.to_dict() for player in players]
+    return json.dumps(players_dict_list, indent=4) 
+
+def save_players_to_json_file(players, filename="players.json"):
+    players_json = players_to_json(players)
+    with open(filename, "w") as f:
+        f.write(players_json)
+
+            
+
 def main():
     save_html(mainPageURL, 'homepage.html')
     extractURLandNames()
     # saveTeamHTML()
     extractPlayersFromTeamPage()
     #savePlayersStatsHTML()
+    addStatsToPlayer()
+
+    save_players_to_json_file(players)
 
 main()
