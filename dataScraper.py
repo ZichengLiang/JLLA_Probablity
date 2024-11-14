@@ -99,13 +99,14 @@ class Player:
         return f"[Name: {self.name}\n URL: {self.url}\n POS: {self.position}\n Team: {self.team}\n SavePercentage(Keepers Only): {self.savePercentage}\n TacklesPG: {self.tacklesPG}\n InterceptionsPG: {self.interceptionsPG}\n ShotsPG: {self.shotsPG}\n PassesPG: {self.passesPG}\n ProgPassesRec: {self.progPassesRecievedPG}\n ProgCarries: {self.progCarriesPG}]"
     
 
-    def setGKStats(self, savePercentage, matchesPlayed, starts):
+    def setGKStats(self, savePercentage, matchesPlayed, starts, startsForCurrentTeam):
         self.matchesPlayed = matchesPlayed
         self.savePercentage = savePercentage
         self.starts = starts
+        self.startsForCurrentTeam = startsForCurrentTeam
     
     def setOutfielderStats(self, tackles, passes, shots, interceptions, 
-                           progPassRecieved, progCarries, matchesPlayed, starts):
+                           progPassRecieved, progCarries, matchesPlayed, starts, startsForCurrentTeam):
         #The values come in as player career totals. We divide by player games played to get per game stats.
         self.tacklesPG = tackles/matchesPlayed
         self.passesPG = passes/matchesPlayed
@@ -115,6 +116,7 @@ class Player:
         self.progCarriesPG = progCarries/matchesPlayed
         self.matchesPlayed = matchesPlayed
         self.starts = starts
+        self.startsForCurrentTeam = startsForCurrentTeam
     
     def to_dict(self):
         return {
@@ -131,7 +133,8 @@ class Player:
             "passesPG": self.passesPG,
             "progPassesRecievedPG": self.progPassesRecievedPG,
             "progCarriesPG": self.progCarriesPG,
-            "starts" : self.starts
+            "starts" : self.starts,
+            "startsForCurrentTeam" : self.startsForCurrentTeam
         }
 
 def saveTeamHTML():
@@ -211,10 +214,15 @@ def addStatsToPlayer():
 
                 savesPerGame = 0
                 keeperMatchesPlayed = 0
+                starts = 0
+                startsForCurrentTeam = 0
                 try:
                     keeperMatchesPlayed = int(soup.select("#stats_keeper_dom_lg > tfoot > tr:nth-child(1) > td:nth-child(6)")[0].get_text(strip=True)or 0)
                     savesPerGame = float(soup.select("#stats_keeper_dom_lg > tfoot > tr:nth-child(1) > td:nth-child(14)")[0].get_text(strip=True)or 0)
                     starts = float(soup.select("#stats_keeper_dom_lg > tfoot > tr:nth-child(1) > td:nth-child(7)")[0].get_text(strip=True)or 0)
+
+                    gTable = soup.select("#stats_keeper_dom_lg > tbody")
+                    print(gTable)
 
                     player.setGKStats(savesPerGame, keeperMatchesPlayed, starts)
                     print(f"Updated stats for {player.name}\n")
@@ -242,6 +250,7 @@ def addStatsToPlayer():
                 progPassesRecieved = 0
                 progCarries = 0
                 starts = 0
+                startsForCurrentTeam = 0
                 
                 # Parse stats using row.select() and assign values
                 try:
@@ -253,8 +262,11 @@ def addStatsToPlayer():
                     progPassesRecieved = float(soup.select("#stats_possession_dom_lg > tfoot > tr:nth-child(1) > td:nth-child(28)")[0].get_text(strip=True) or 0)
                     progCarries = float(soup.select("#stats_possession_dom_lg > tfoot > tr:nth-child(1) > td:nth-child(19)")[0].get_text(strip=True) or 0)
                     starts = float(soup.select("#stats_standard_dom_lg > tfoot > tr:nth-child(1) > td:nth-child(7)")[0].get_text(strip=True) or 0)
+
+                    gTable = soup.select("#stats_standard_dom_lg > tbody")
+                    print(gTable)
                     
-                    player.setOutfielderStats(tackles, passes, shots, interceptions, progPassesRecieved, progCarries, matchesPlayed, starts)
+                    player.setOutfielderStats(tackles, passes, shots, interceptions, progPassesRecieved, progCarries, matchesPlayed, starts, startsForCurrentTeam)
                     print(f"Updated stats for {player.name}\n")
                 except Exception as e:
                     print(f"Error extracting stats for {player.name}: {e}")
@@ -288,6 +300,6 @@ def main():
     #savePlayersStatsHTML()
     addStatsToPlayer()
 
-    save_players_to_json_file(players)
+    #save_players_to_json_file(players)
 
 main()
