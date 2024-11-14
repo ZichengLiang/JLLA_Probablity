@@ -82,6 +82,7 @@ class Player:
 
         #Common stats:
         self.matchesPlayed = 0
+        self.starts = 0
 
         # GK STATS:
         self.savePercentage = 0
@@ -98,12 +99,13 @@ class Player:
         return f"[Name: {self.name}\n URL: {self.url}\n POS: {self.position}\n Team: {self.team}\n SavePercentage(Keepers Only): {self.savePercentage}\n TacklesPG: {self.tacklesPG}\n InterceptionsPG: {self.interceptionsPG}\n ShotsPG: {self.shotsPG}\n PassesPG: {self.passesPG}\n ProgPassesRec: {self.progPassesRecievedPG}\n ProgCarries: {self.progCarriesPG}]"
     
 
-    def setGKStats(self, savePercentage, matchesPlayed):
+    def setGKStats(self, savePercentage, matchesPlayed, starts):
         self.matchesPlayed = matchesPlayed
         self.savePercentage = savePercentage
+        self.starts = starts
     
     def setOutfielderStats(self, tackles, passes, shots, interceptions, 
-                           progPassRecieved, progCarries, matchesPlayed):
+                           progPassRecieved, progCarries, matchesPlayed, starts):
         #The values come in as player career totals. We divide by player games played to get per game stats.
         self.tacklesPG = tackles/matchesPlayed
         self.passesPG = passes/matchesPlayed
@@ -112,6 +114,7 @@ class Player:
         self.progPassesRecievedPG = progPassRecieved/matchesPlayed
         self.progCarriesPG = progCarries/matchesPlayed
         self.matchesPlayed = matchesPlayed
+        self.starts = starts
     
     def to_dict(self):
         return {
@@ -127,7 +130,8 @@ class Player:
             "shotsPG": self.shotsPG,
             "passesPG": self.passesPG,
             "progPassesRecievedPG": self.progPassesRecievedPG,
-            "progCarriesPG": self.progCarriesPG
+            "progCarriesPG": self.progCarriesPG,
+            "starts" : self.starts
         }
 
 def saveTeamHTML():
@@ -210,8 +214,9 @@ def addStatsToPlayer():
                 try:
                     keeperMatchesPlayed = int(soup.select("#stats_keeper_dom_lg > tfoot > tr:nth-child(1) > td:nth-child(6)")[0].get_text(strip=True)or 0)
                     savesPerGame = float(soup.select("#stats_keeper_dom_lg > tfoot > tr:nth-child(1) > td:nth-child(14)")[0].get_text(strip=True)or 0)
+                    starts = float(soup.select("#stats_keeper_dom_lg > tfoot > tr:nth-child(1) > td:nth-child(7)")[0].get_text(strip=True)or 0)
 
-                    player.setGKStats(savesPerGame, keeperMatchesPlayed)
+                    player.setGKStats(savesPerGame, keeperMatchesPlayed, starts)
                     print(f"Updated stats for {player.name}\n")
                 except Exception as e:
                     print(f"Unexpected error processing {player.name}: {e}")
@@ -236,6 +241,7 @@ def addStatsToPlayer():
                 passes = 0#stats_standard_dom_lg > tfoot > tr:nth-child(1) > 
                 progPassesRecieved = 0
                 progCarries = 0
+                starts = 0
                 
                 # Parse stats using row.select() and assign values
                 try:
@@ -246,8 +252,9 @@ def addStatsToPlayer():
                     passes = float(soup.select("#stats_passing_dom_lg > tfoot > tr:nth-child(1) > td:nth-child(8)")[0].get_text(strip=True) or 0)
                     progPassesRecieved = float(soup.select("#stats_possession_dom_lg > tfoot > tr:nth-child(1) > td:nth-child(28)")[0].get_text(strip=True) or 0)
                     progCarries = float(soup.select("#stats_possession_dom_lg > tfoot > tr:nth-child(1) > td:nth-child(19)")[0].get_text(strip=True) or 0)
+                    starts = float(soup.select("#stats_standard_dom_lg > tfoot > tr:nth-child(1) > td:nth-child(7)")[0].get_text(strip=True) or 0)
                     
-                    player.setOutfielderStats(tackles, passes, shots, interceptions, progPassesRecieved, progCarries, matchesPlayed)
+                    player.setOutfielderStats(tackles, passes, shots, interceptions, progPassesRecieved, progCarries, matchesPlayed, starts)
                     print(f"Updated stats for {player.name}\n")
                 except Exception as e:
                     print(f"Error extracting stats for {player.name}: {e}")
