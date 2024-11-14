@@ -9,7 +9,7 @@ mainPageURL = "https://fbref.com/en/comps/9/Premier-League-Stats"
 numberTeams = 20
 teams = []
 players = []
-djfhdmbfmnd
+
 #This is just a fun function: Delete if performance heavy and uncomment the last line in addstatstoplayers
 def display_loading_bar(count, total, bar_length=40):
     """
