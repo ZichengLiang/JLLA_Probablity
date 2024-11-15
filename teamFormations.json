@@ -1,0 +1,22 @@
+[
+    { "name" : "Arsenal", "formation": "4,3,3"},
+    {"name": "Aston Villa", "formation": "4,5,1"},
+    {"name": "Bournemouth", "formation": "4,3,3"},
+    {"name": "Brentford", "formation" : "4,3,3"},
+    {"name":"Brighton", "formation": "4,5,1"},
+    {"name":"Chelsea", "formation": "4,5,1"},
+    {"name":"Crystal Palace", "formation": "4,3,3"},
+    {"name":"Everton", "formation": "4,5,1"},
+    {"name":"Fulham", "formation": "4,5,1"},
+    {"name":"Ipswich Town", "formation": "4,5,1"},
+    {"name":"Leicester City", "formation": "4,4,2"},
+    {"name":"Liverpool", "formation": "4,5,1"},
+    {"name":"Manchester City", "formation": "4,5,1"},
+    {"name":"Manchester Utd", "formation": "4,5,1"},
+    {"name":"Newcastle Utd", "formation": "4,5,1"},
+    {"name":"Nottingham Forest", "formation": "4,3,3"},
+    {"name":"Southampton", "formation": "4,3,3"},
+    {"name":"Tottenham", "formation": "4,3,3"},
+    {"name":"West Ham", "formation": "5,4,1"},
+    {"name":"Wolves","formation": "4,3,3"}
+]
