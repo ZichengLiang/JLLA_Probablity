@@ -83,7 +83,7 @@ class Player:
         #Common stats:
         self.matchesPlayed = 0
         self.starts = 0
-        self.matchesPlayedForCurrentTeam = 0
+        self.gamesPlayedForCurrentTeam = 0
         self.startsForCurrentTeam = 0
 
         # GK STATS:
@@ -278,11 +278,16 @@ def addStatsToPlayer():
 
                     gTable = soup.select("#stats_standard_dom_lg > tbody > tr") #stats_standard_dom_lg > tbody
                     
-                    
+                    i = 0
                     for row in gTable:
                         if ((row.select("#stats > td:nth-child(3) > a")[0].get_text(strip=True)or "") == player.team):
+                            i += 1
                             gamesPlayedForCurrentTeam += float(row.select("#stats > td:nth-child(7)")[0].get_text(strip=True)or 0)
                             startsForCurrentTeam += float(row.select("#stats > td:nth-child(8)")[0].get_text(strip=True)or 0)
+                        
+                        
+                    gamesPlayedForCurrentTeam = gamesPlayedForCurrentTeam/i
+                    startsForCurrentTeam = startsForCurrentTeam/i
                     
                     
                     player.setOutfielderStats(tackles, passes, shots, interceptions, progPassesRecieved, progCarries, matchesPlayed, starts, startsForCurrentTeam, gamesPlayedForCurrentTeam)
