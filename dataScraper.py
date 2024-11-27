@@ -284,10 +284,7 @@ def addStatsToPlayer():
                             i += 1
                             gamesPlayedForCurrentTeam += float(row.select("#stats > td:nth-child(7)")[0].get_text(strip=True)or 0)
                             startsForCurrentTeam += float(row.select("#stats > td:nth-child(8)")[0].get_text(strip=True)or 0)
-                        
-                        
-                    gamesPlayedForCurrentTeam = gamesPlayedForCurrentTeam/i
-                    startsForCurrentTeam = startsForCurrentTeam/i
+    
                     
                     
                     player.setOutfielderStats(tackles, passes, shots, interceptions, progPassesRecieved, progCarries, matchesPlayed, starts, startsForCurrentTeam, gamesPlayedForCurrentTeam)
