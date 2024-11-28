@@ -1,8 +1,8 @@
 [
-    { "name" : "Arsenal", "formation": "4,3,3"},
-    {"name": "Aston Villa", "formation": "4,5,1"},
-    {"name": "Bournemouth", "formation": "4,3,3"},
-    {"name": "Brentford", "formation" : "4,3,3"},
+    {"name":"Arsenal", "formation": "4,3,3"},
+    {"name":"Aston Villa", "formation": "4,5,1"},
+    {"name":"Bournemouth", "formation": "4,3,3"},
+    {"name":"Brentford", "formation" : "4,3,3"},
     {"name":"Brighton", "formation": "4,5,1"},
     {"name":"Chelsea", "formation": "4,5,1"},
     {"name":"Crystal Palace", "formation": "4,3,3"},
